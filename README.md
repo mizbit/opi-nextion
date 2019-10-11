@@ -19,11 +19,13 @@ I invite you to participate in this project:
 * The startup page, the main page, must just send 'main'
 
 Example main page.
+</br>
 ![Example main page](images/main.png)
-<img src="https://raw.githubusercontent.com/vanvught/opi-nextion/master/images/main.png" />
-
 
 Example Network page.
-
+</br>
+![Example main page](images/get.png)
+</br>
+![Example main page](images/save.png)
 
 http://www.orangepi-dmx.org/
