@@ -11,7 +11,7 @@ The directory `opi_emac_artnet_nextion` will contain a dummy Art-Net 4 Node for 
 I invite you to participate in this project:
 
 1. Open an Issue
-2. Create a directory in `users`, put in your .tft file and submit a [pull request](https://help.github.com/en/articles/about-pull-requests).
+2. Create a directory in `users`, put in your .HMI .zi files and submit a [pull request](https://help.github.com/en/articles/about-pull-requests).
 
 **The protocol**.
 
