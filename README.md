@@ -19,6 +19,7 @@ I invite you to participate in this project:
 * When a page must retrieve data then the '?' must be prefixed to the configuration file name.
 * When page data must be stored then the '!' must be prefixed to the configuration file name.
 * The startup page, the main page, must just send 'main'
+* There are well defined [object names](/objects) per page.
 
 Example main page.
 </br>
