@@ -19,5 +19,6 @@ page "network.txt"
 	n_netmask
 	n_gw
 	n_hostname
+	n_dhcp
 	
 *More to come ...* please do provide input.
