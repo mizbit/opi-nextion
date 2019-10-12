@@ -26,11 +26,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
-#include <sc16is750.h>
 
+#include "sc16is750.h"
 #include "sc16is7x0.h"
 
 #include "i2c.h"
+
+#include "debug.h"
 
 SC16IS750::SC16IS750(void) {
 	m_nAddress = SC16IS750_I2C_ADDRESS;
@@ -49,6 +51,7 @@ bool SC16IS750::Start(void) {
 	I2cSetup();
 
 	if (!i2c_is_connected(m_nAddress)) {
+		DEBUG_PUTS("Not connected");
 		return false;
 	}
 
@@ -118,13 +121,15 @@ void SC16IS750::SetFormat(uint32_t nBits, TSC16IS750SerialParity tParity,  uint3
 	RegWrite(SC16IS7X0_LCR, lcr);
 }
 
-void SC16IS750::SetBaud(uint32_t nBaudrate) {
+void SC16IS750::SetBaud(uint32_t nBaud) {
 #define SC16IS750_PRESCALER_1               1			///< Default prescaler after reset
 #define SC16IS750_PRESCALER                 SC16IS750_PRESCALER_1
 #define SC16IS750_BAUDRATE_DIVISOR(baud)	((m_nOnBoardCrystal/SC16IS750_PRESCALER)/(baud*16UL))
 
-	const uint32_t nDivisor = (uint32_t) SC16IS750_BAUDRATE_DIVISOR(nBaudrate);
+	const uint32_t nDivisor = (uint32_t) SC16IS750_BAUDRATE_DIVISOR(nBaud);
 	const uint8_t lcr = RegRead(SC16IS7X0_LCR);
+
+	DEBUG_PRINTF("m_nOnBoardCrystal=%d", m_nOnBoardCrystal);
 
 	RegWrite(SC16IS7X0_LCR, lcr | LCR_ENABLE_DIV);
 	RegWrite(SC16IS7X0_DLL, (nDivisor & 0xFF));

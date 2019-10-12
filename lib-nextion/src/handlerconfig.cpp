@@ -23,14 +23,13 @@
  * THE SOFTWARE.
  */
 
-#pragma GCC push_options
-#pragma GCC optimize ("Os")
+// #pragma GCC push_options
+// #pragma GCC optimize ("Os")
 
 #include <stdint.h>
 
 #include "nextion.h"
 
-#include "remoteconfig.h"
 #include "remoteconfigparams.h"
 #include "remoteconfigconst.h"
 #include "storeremoteconfig.h"

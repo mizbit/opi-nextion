@@ -53,10 +53,26 @@ public:
 	SC16IS750(uint8_t nAddress, uint32_t nOnBoardCrystal = SC16IS750_CRISTAL_HZ);
 	~SC16IS750(void);
 
+	void SetAddress(uint8_t nAddress) {
+		m_nAddress = nAddress;
+	}
+	uint8_t GetAddress(void) {
+		return m_nAddress;
+	}
+
+	void SetOnBoardCrystal(uint32_t nHz) {
+		m_nOnBoardCrystal = nHz;
+	}
+	uint32_t GetOnBoardCrystal(void) {
+		return m_nOnBoardCrystal;
+	}
+
 	void SetFormat(uint32_t nBits, TSC16IS750SerialParity tParity, uint32_t nStopBits);
-	void SetBaud(uint32_t nBaudrate);
+	void SetBaud(uint32_t nBaud);
 
 	bool Start(void);
+
+	void Print(void);
 
 	bool IsReadable(void) {
 		if ((RegRead(SC16IS7X0_LSR) & LSR_DR) == LSR_DR) {
@@ -77,8 +93,16 @@ public:
 		return false;
 	}
 
-	int Getc(void) {
+	int GetChar(void) {
 		if (!IsReadable()) {
+			return -1;
+		}
+
+		return (int) RegRead(SC16IS7X0_RHR);
+	}
+
+	int GetChar(uint32_t nTimeOut) {
+		if (!IsReadable(nTimeOut)) {
 			return -1;
 		}
 
@@ -115,11 +139,10 @@ public:
 		return i;
 	}
 
-	void RegWrite(uint8_t nRegister, uint8_t nValue);
-	uint8_t RegRead(uint8_t nRegister);
-
 private:
 	void I2cSetup(void);
+	void RegWrite(uint8_t nRegister, uint8_t nValue);
+	uint8_t RegRead(uint8_t nRegister);
 
 private:
 	uint8_t m_nAddress;

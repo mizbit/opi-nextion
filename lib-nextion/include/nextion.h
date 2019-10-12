@@ -31,14 +31,20 @@
 
 #include "sc16is750.h"
 
-class Nextion {
+class Nextion: public SC16IS750 {
 public:
 	Nextion(void);
 	~Nextion(void);
 
-	bool Start(void);
+	void SetBaud(uint32_t nBaud);
+	uint32_t GetBaud(void) {
+		return m_nBaud;
+	}
 
+	bool Start(void);
 	void Run(void);
+
+	void Print(void);
 
 private:
 	void SendCommand(const char *pCommand);
@@ -78,7 +84,7 @@ private:
 	void HandleDevicesSave(void);
 
 private:
-	SC16IS750 m_SC16IS750;
+	uint32_t m_nBaud;
 	uint32_t m_nCount;
 	uint8_t m_aCommandReturned[32];
 };

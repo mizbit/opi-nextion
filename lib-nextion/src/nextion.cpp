@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #ifndef NDEBUG	// TODO remove
@@ -42,24 +43,48 @@
 
 static const uint8_t s_aTermination[4] ALIGNED = { 0xFF, 0xFF, 0xFF, 0x00};
 
+static const uint32_t s_aValidBaud[] = {2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 256000, 512000, 921600};
+#define ARRAY_SIZE	((sizeof s_aValidBaud) / (sizeof s_aValidBaud[0]))
+
 enum TReturnCodes {
 	RETURN_CODE_INVALID_VARIABLE_NAME = 0x1A,
 	RETURN_CODE_TOUCH_EVENT = 0x65,
 	RETURN_CODE_READY = 0x88
 };
 
-Nextion::Nextion(void) {
+Nextion::Nextion(void): m_nBaud(9600) {
 }
 
 Nextion::~Nextion(void) {
 }
 
+void Nextion::SetBaud(uint32_t nBaud) {
+	DEBUG_ENTRY
+
+	for (uint32_t i = 0; i < ARRAY_SIZE; i++) {
+		if (nBaud == s_aValidBaud[i]) {
+			m_nBaud = nBaud;
+
+			DEBUG_EXIT
+			return;
+		}
+	}
+
+	m_nBaud = 9600;
+
+	DEBUG_EXIT
+	return;
+}
+
 bool Nextion::Start(void) {
-	if (!m_SC16IS750.Start()) {
+	DEBUG_ENTRY
+
+	if (!SC16IS750::Start()) {
+		DEBUG_EXIT
 		return false;
 	}
 
-	m_SC16IS750.SetBaud(9600);
+	SC16IS750::SetBaud(m_nBaud);
 
 	SendCommand("bkcmd=1");
 	const bool r1 = ReceiveCommandResponse();
@@ -70,17 +95,17 @@ bool Nextion::Start(void) {
 	SendCommand("bkcmd=2");
 
 	DEBUG_PRINTF("%d %d", (int ) r1, (int ) r2);
+	DEBUG_EXIT
 
 	return r1 & r2;
 }
 
 bool Nextion::ReceiveCommandResponse(void) {
+	int c;
 	uint32_t nCount0xFF = 0;
 	uint32_t nCount = 0;
 
-	while (m_SC16IS750.IsReadable(100)) {
-		const int c = m_SC16IS750.Getc();
-
+	while ((c = GetChar(100)) != -1) {
 		if (c == 0xFF) {
 			nCount0xFF++;
 		} else {
@@ -101,6 +126,7 @@ bool Nextion::ReceiveCommandResponse(void) {
 	 return (m_aCommandReturned[0] == 0x01) && (nCount0xFF == 3) && (nCount == 1);
 }
 
+
 void Nextion::Run(void) {
 	Listen();
 }
@@ -108,11 +134,11 @@ void Nextion::Run(void) {
 bool Nextion::Listen(void) {
 #define TO_HEX(i)	((i) < 10) ? '0' + (i) : 'A' + ((i) - 10)
 
+	int c;
 	uint32_t nCount0xFF = 0;
 	m_nCount = 0;
 
-	while (m_SC16IS750.IsReadable(100)) {
-		const int c = m_SC16IS750.Getc();
+	while ((c = GetChar(100)) != -1) {
 		DEBUG_PRINTF("%.2x [%c]", (int) c, isprint(c) ? c : '.');
 
 		if ((m_nCount == 0) && (c == 0)) {
@@ -161,11 +187,11 @@ void Nextion::SendCommand(const char *pCommand) {
 
 	DEBUG_PUTS(pCommand);
 
-	while (m_SC16IS750.Getc() != -1)
+	while (GetChar() != -1)
 		;
 
-	m_SC16IS750.Puts(pCommand);
-	m_SC16IS750.Puts((const char *)s_aTermination);
+	Puts(pCommand);
+	Puts((const char *)s_aTermination);
 }
 
 void Nextion::SetText(const char *pObjectName, const char *pValue) {
@@ -199,11 +225,11 @@ bool Nextion::GetValue(const char *pObjectName, uint32_t &nValue) {
 bool Nextion::ReceiveReturnedValue(uint32_t &nValue) {
 	DEBUG2_ENTRY
 
+	int c;
 	uint32_t nCount0xFF = 0;
 	uint32_t nCount = 0;
 
-	while (m_SC16IS750.IsReadable(100)) {
-		const int c = m_SC16IS750.Getc();
+	while ((c = GetChar(100)) != -1) {
 		DEBUG_PRINTF("%.2x [%c]", (int) c, isprint(c) ? c : '.');
 
 		if (nCount > 5) {
