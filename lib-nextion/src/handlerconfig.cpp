@@ -23,13 +23,19 @@
  * THE SOFTWARE.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include <stdint.h>
-#include <string.h>
-#include <assert.h>
 
 #include "nextion.h"
 
 #include "remoteconfig.h"
+#include "remoteconfigparams.h"
+#include "remoteconfigconst.h"
+#include "storeremoteconfig.h"
+
+#include "propertiesbuilder.h"
 
 #include "debug.h"
 
@@ -48,9 +54,33 @@ void Nextion::HandleRconfigSave(void) {
 	DEBUG2_ENTRY
 
 	uint32_t nValue;
-	const bool bSucces = GetValue("r_disable", nValue);
+	uint8_t aBuffer[80];
 
-	DEBUG_PRINTF("%d:nDisable=%d", bSucces, nValue);
+	PropertiesBuilder builder(RemoteConfigConst::PARAMS_FILE_NAME, aBuffer, static_cast<uint32_t>(sizeof aBuffer));
+
+	if (GetValue("r_disable", nValue)) {
+		RemoteConfig::Get()->SetDisable(static_cast<bool>(nValue));
+		builder.Add(RemoteConfigConst::PARAMS_DISABLE, nValue, static_cast<bool>(nValue));
+	}
+
+	if (GetValue("r_write", nValue)) {
+		RemoteConfig::Get()->SetDisableWrite(static_cast<bool>(nValue));
+		builder.Add(RemoteConfigConst::PARAMS_DISABLE_WRITE, nValue, static_cast<bool>(nValue));
+	}
+
+	if (GetValue("r_reboot", nValue)) {
+		RemoteConfig::Get()->SetEnableReboot(static_cast<bool>(nValue));
+		builder.Add(RemoteConfigConst::PARAMS_ENABLE_REBOOT, nValue, static_cast<bool>(nValue));
+	}
+
+	if (GetValue("r_uptime", nValue)) {
+		RemoteConfig::Get()->SetEnableUptime(static_cast<bool>(nValue));
+		builder.Add(RemoteConfigConst::PARAMS_ENABLE_UPTIME, nValue, static_cast<bool>(nValue));
+	}
+
+	RemoteConfigParams remoteConfigParams((RemoteConfigParamsStore *) StoreRemoteConfig::Get());
+
+	remoteConfigParams.Load((const char *) aBuffer, builder.GetSize());
 
 	DEBUG2_EXIT
 }
