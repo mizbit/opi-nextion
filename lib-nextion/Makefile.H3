@@ -1,0 +1,7 @@
+#
+DEFINES = NDEBUG
+#
+EXTRA_INCLUDES = ../lib-remoteconfig/include ../lib-bob/include ../lib-i2c/include ../lib-tftpdeamon/include
+#
+include ../h3-firmware-template/lib/Rules.mk
+	

@@ -1,0 +1,6 @@
+#
+DEFINES = RASPPI #NDEBUG
+#
+EXTRA_INCLUDES = ../lib-remoteconfig/include ../lib-bob/include ../lib-i2c/include ../lib-tftpdeamon/include
+#
+include ../linux-template/lib/Rules.mk
