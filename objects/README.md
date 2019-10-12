@@ -5,7 +5,14 @@ page "main"
 	title
 	version
 	uptime
+
+page "rconfig.txt"
 	
+	r_disable
+	r_write
+	r_reboot
+	r_uptime
+
 page "network.txt"
 
 	n_ip
