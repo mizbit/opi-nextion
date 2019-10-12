@@ -15,10 +15,10 @@ I invite you to participate in this project:
 
 **The protocol**.
 
-* No events must be generated.
-* When a page must retrieve data then the '?' must be prefixed to the configuration file name.
-* When page data must be stored then the '!' must be prefixed to the configuration file name.
-* The startup page, the main page, must just send 'main'
+* No *Send Component ID*.
+* When a page must retrieve data then the '?' must be prefixed to the configuration file name -> Initialize Event.
+* When page data must be stored then the '!' must be prefixed to the configuration file name -> Touch Event.
+* The startup page, the main page, must just send 'main -> Initialize Event.
 * There are well defined [object names](/objects) per page.
 
 Example main page.
