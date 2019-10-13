@@ -29,6 +29,8 @@
 
 #include "nextion.h"
 
+
+
 #include "debug.h"
 
 void Nextion::HandleDevicesGet(void) {

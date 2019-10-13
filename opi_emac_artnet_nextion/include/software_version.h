@@ -1,5 +1,5 @@
 /**
- * @file handlemainpage.cpp
+ * @file software_version.h
  *
  */
 /* Copyright (C) 2019 by Arjan van Vught mailto:info@raspberrypi-dmx.nl
@@ -23,32 +23,9 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
-#include <stdio.h>
+#ifndef SOFTWARE_VERSION_H_
+#define SOFTWARE_VERSION_H_
 
-#include "nextion.h"
+static const char SOFTWARE_VERSION[] = "0.0";
 
-#include "firmwareversion.h"
-#include "hardware.h"
-
-#include "debug.h"
-
-void Nextion::HandleMain(void) {
-	DEBUG1_ENTRY
-
-	{
-		char componentText[] = "title.txt=\"Art-Net 4 Node Pixel Controller\""; //FIXME title.txt
-		SendCommand(componentText);
-	}
-
-	SetText("version", FirmwareVersion::Get()->GetPrint());
-	SetValue("uptime", static_cast<uint32_t>(Hardware::Get()->GetUpTime()));
-
-#ifndef NDEBUG
-	uint32_t nValue;
-	bool bSucces = GetValue("uptime", nValue);
-
-	DEBUG_PRINTF("%d:uptime=%d", bSucces, nValue);
-#endif
-	DEBUG1_EXIT
-}
+#endif /* SOFTWARE_VERSION_H_ */
