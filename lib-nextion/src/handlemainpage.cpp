@@ -41,7 +41,7 @@ void Nextion::HandleMain(void) {
 		SendCommand(componentText);
 	}
 
-	SetText("version", FirmwareVersion::Get()->GetPrint());
+	SetText("version", reinterpret_cast<const uint8_t *>(FirmwareVersion::Get()->GetPrint()));
 	SetValue("uptime", static_cast<uint32_t>(Hardware::Get()->GetUpTime()));
 
 #ifndef NDEBUG
