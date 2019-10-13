@@ -50,13 +50,15 @@ private:
 	void SendCommand(const char *pCommand);
 	bool ReceiveCommandResponse(void);
 
-	void SetText(const char *pObjectName, const char *pValue);
+	void SetText(const char *pObjectName, const uint8_t *pValue);
+	uint32_t GetText(const char *pObjectName, uint8_t *pValue, uint32_t nLength);
 
 	void SetValue(const char *pObjectName, uint32_t nValue);
 	bool GetValue(const char *pObjectName, uint32_t &nValue);
 	bool ReceiveReturnedValue(uint32_t &nValue);
 
 	void SetIp(const char *pObjectName, uint32_t nIp);
+	uint32_t GetIp(const char *pObjectName);
 
 	bool Listen(void);
 

@@ -71,6 +71,11 @@
 
 #include "software_version.h"
 
+#include "mdns.h"
+#include "mdnsservices.h"
+
+#include "displayudfhandler.h"
+
 extern "C" {
 
 void notmain(void) {
@@ -102,6 +107,7 @@ void notmain(void) {
 
 	nw.Init((NetworkParamsStore *)spiFlashStore.GetStoreNetwork());
 	nw.SetNetworkStore((NetworkStore *)spiFlashStore.GetStoreNetwork());
+
 	nw.Print();
 
 	console_status(CONSOLE_YELLOW, ArtNetConst::MSG_NODE_PARAMS);
@@ -230,6 +236,20 @@ void notmain(void) {
 	 *
 	 */
 
+
+	/*
+	 * mDNS
+	 */
+	MDNS mDns;
+
+	mDns.Start();
+	mDns.AddServiceRecord(0, MDNS_SERVICE_CONFIG, 0x2905);
+	mDns.AddServiceRecord(0, MDNS_SERVICE_TFTP, 69);
+	mDns.Print();
+	/*
+	 *
+	 */
+
 	RemoteConfig remoteConfig(REMOTE_CONFIG_ARTNET, REMOTE_CONFIG_MODE_PIXEL, node.GetActiveOutputPorts());
 
 	StoreRemoteConfig storeRemoteConfig;
@@ -266,6 +286,13 @@ void notmain(void) {
 	for (;;) {
 		hw.WatchdogFeed();
 		nw.Run();
+		/*
+		 *
+		 */
+		mDns.Run();
+		/*
+		 *
+		 */
 		node.Run();
 		/*
 		 * Nextion

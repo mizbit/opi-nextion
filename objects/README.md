@@ -5,6 +5,7 @@ page "main"
 	title
 	version
 	uptime
+	reboot
 
 page "rconfig.txt"
 	
@@ -17,7 +18,6 @@ page "network.txt"
 
 	n_ip
 	n_netmask
-	n_gw
 	n_hostname
 	n_dhcp
 	

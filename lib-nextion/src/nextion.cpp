@@ -194,7 +194,7 @@ void Nextion::SendCommand(const char *pCommand) {
 	Puts((const char *)s_aTermination);
 }
 
-void Nextion::SetText(const char *pObjectName, const char *pValue) {
+void Nextion::SetText(const char *pObjectName, const uint8_t *pValue) {
 	char componentText[80];
 
 	int i __attribute__((unused));
@@ -204,6 +204,10 @@ void Nextion::SetText(const char *pObjectName, const char *pValue) {
 	DEBUG_PRINTF("i=%d", i);
 
 	SendCommand(componentText);
+}
+
+uint32_t Nextion::GetText(const char *pObjectName, uint8_t *pValue, uint32_t nLength) {
+	return 0; //TODO GetText
 }
 
 void Nextion::SetValue(const char *pObjectName, uint32_t nValue) {

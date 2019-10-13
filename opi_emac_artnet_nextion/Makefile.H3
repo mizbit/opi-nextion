@@ -1,7 +1,7 @@
 #
 PLATFORM = ORANGE_PI
 #
-DEFINES = ARTNET_NODE PIXEL DISPLAY_UDF DISPLAY_NEXTION NDEBUG
+DEFINES = ARTNET_NODE PIXEL DISPLAY_UDF DISPLAY_NEXTION RDMNET_LLRP_ONLY NDEBUG
 #
 LIBS = nextion
 #
@@ -10,3 +10,4 @@ SRCDIR = firmware lib
 include ../h3-firmware-template/Rules.mk
 
 prerequisites:
+

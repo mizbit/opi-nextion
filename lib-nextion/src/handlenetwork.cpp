@@ -25,10 +25,14 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "nextion.h"
 
 #include "network.h"
+#include "storenetwork.h"
 
 #include "debug.h"
 
@@ -39,13 +43,25 @@ void Nextion::SetIp(const char *pObjectName, uint32_t nIp) {
 	SendCommand(componentText);
 }
 
+uint32_t Nextion::GetIp(const char *pObjectName) {
+	uint8_t componentValue[32];
+
+	if (GetText(pObjectName, componentValue, sizeof componentValue) != 0) {
+		struct in_addr addr;
+		inet_aton(reinterpret_cast<char *>(componentValue), &addr);
+		return addr.s_addr;
+	}
+
+	return 0;
+}
+
 void Nextion::HandleNetworkGet(void) {
 	DEBUG2_ENTRY
 
 	SetIp("n_ip", Network::Get()->GetIp());
 	SetIp("n_netmask", Network::Get()->GetNetmask());
-	SetIp("n_gw", Network::Get()->GetGatewayIp());
-	SetText("n_hostname", Network::Get()->GetHostName());
+//	SetIp("n_gw", Network::Get()->GetGatewayIp()); // there is no SetGatewayIp
+	SetText("n_hostname", reinterpret_cast<const uint8_t *>(Network::Get()->GetHostName()));
 	SetValue("n_dhcp", static_cast<uint32_t>(Network::Get()->IsDhcpUsed()));
 
 	DEBUG2_EXIT
@@ -53,6 +69,31 @@ void Nextion::HandleNetworkGet(void) {
 
 void Nextion::HandleNetworkSave(void) {
 	DEBUG2_ENTRY
+
+	uint32_t nIp;
+
+	if ((nIp = GetIp("n_ip")) != 0) {
+		Network::Get()->SetIp(nIp);
+	}
+
+	if ((nIp = GetIp("n_netmask")) != 0) {
+		Network::Get()->SetNetmask(nIp);
+	}
+
+	uint8_t aHostName[NETWORK_HOSTNAME_SIZE];
+
+	uint32_t nLength;
+
+	if ((nLength = GetText("n_hostname", static_cast<uint8_t *>(aHostName), NETWORK_HOSTNAME_SIZE - 1)) != 0) {
+		aHostName[nLength] = '\0';
+		StoreNetwork::Get()->SaveHostName(static_cast<const uint8_t *>(aHostName));
+	}
+
+	uint32_t nValue;
+
+	if(GetValue("n_dhcp", nValue)) {
+		StoreNetwork::Get()->SaveDhcp(static_cast<bool>(nValue));
+	}
 
 	DEBUG2_EXIT
 }
