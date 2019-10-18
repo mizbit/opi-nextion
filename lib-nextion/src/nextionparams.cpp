@@ -23,11 +23,6 @@
  * THE SOFTWARE.
  */
 
-#if !defined(__clang__)	// Needed for compiling on MacOS
- #pragma GCC push_options
- #pragma GCC optimize ("Os")
-#endif
-
 #include <stdint.h>
 #include <string.h>
 #ifndef NDEBUG
@@ -99,7 +94,7 @@ void NextionParams::callbackFunction(const char *pLine) {
 
 }
 
-bool NextionParams::Builder(const struct TNextionParams *pNextionParams, uint8_t *pBuffer, uint32_t nLength, uint32_t &nSize) {
+void NextionParams::Builder(const struct TNextionParams *pNextionParams, uint8_t *pBuffer, uint32_t nLength, uint32_t &nSize) {
 	assert(pBuffer != 0);
 
 	if (pNextionParams != 0) {
@@ -110,23 +105,25 @@ bool NextionParams::Builder(const struct TNextionParams *pNextionParams, uint8_t
 
 	PropertiesBuilder builder(NextionParamsConst::FILE_NAME, pBuffer, nLength);
 
-	bool isAdded = builder.Add(NextionParamsConst::BAUD, m_tNextionParams.nBaud, isMaskSet(NEXTION_PARAMS_BAUD));
-	isAdded &= builder.Add(NextionParamsConst::CRYSTAL, m_tNextionParams.nOnBoardCrystal, isMaskSet(NEXTION_PARAMS_CRYSTAL));
+	builder.Add(NextionParamsConst::BAUD, m_tNextionParams.nBaud, isMaskSet(NEXTION_PARAMS_BAUD));
+	builder.Add(NextionParamsConst::CRYSTAL, m_tNextionParams.nOnBoardCrystal, isMaskSet(NEXTION_PARAMS_CRYSTAL));
 
 	nSize = builder.GetSize();
 
-	return isAdded;
+	return;
 }
 
-bool NextionParams::Save(uint8_t *pBuffer, uint32_t nLength, uint32_t &nSize) {
+void NextionParams::Save(uint8_t *pBuffer, uint32_t nLength, uint32_t &nSize) {
 	assert(pBuffer != 0);
 
 	if (m_pNextionParamsStore == 0) {
 		nSize = 0;
-		return false;
+		return;
 	}
 
-	return Builder(0, pBuffer, nLength, nSize);
+	Builder(0, pBuffer, nLength, nSize);
+
+	return;
 }
 
 void NextionParams::Set(Nextion *pNextion) {

@@ -31,6 +31,8 @@
 
 #include "remoteconfig.h"
 
+#include "display.h"
+
 #include "debug.h"
 
 #ifndef ALIGNED
@@ -55,19 +57,28 @@ void Nextion::HandleRawData(void) {
 	DEBUG_PRINTF("nOffset=%d, m_nCount=%d", (int) nOffset, (int) m_nCount);
 
 	while (nOffset < m_nCount) {
-		if (memcmp(&m_aCommandReturned[nOffset], "main", 4) == 0) {
+		const uint32_t nRemaining = sizeof(m_aCommandReturned) - nOffset;
+
+		if ((nRemaining >= 4) && (memcmp(&m_aCommandReturned[nOffset], "main", 4) == 0)) {
 			nOffset += 4;
 			HandleMain();
+		} else if ((nRemaining >= 9) &&  (memcmp(&m_aCommandReturned[nOffset], "?reboot##", 8) == 0)) {
+			RemoteConfig::HandleReboot();
+		} else if ((nRemaining >= 10) && (memcmp(&m_aCommandReturned[nOffset], "!display#", 9) == 0)) {
+			nOffset += 10	;
+			Display::Get()->SetSleep(false);
 		} else if ((m_aCommandReturned[nOffset] == '?') || (m_aCommandReturned[nOffset] == '!')) {
 			const TRequestType tType = m_aCommandReturned[nOffset] == '?' ? REQUEST_GET : REQUEST_SAVE;
 
 			nOffset++;
 
-			uint32_t nLength;
-			const uint32_t nIndex = RemoteConfig::GetIndex((const char *)&m_aCommandReturned[nOffset], nLength);
+			uint32_t nLength = nRemaining;
+			const uint32_t nIndex = RemoteConfig::GetIndex(reinterpret_cast<const char *>(&m_aCommandReturned[nOffset]), nLength);
 
 			if (nIndex == TXT_FILE_LAST) {
-				break;
+				nOffset++;
+				DEBUG_PUTS("!> Invalid .txt <!");
+				continue;
 			}
 
 			nOffset += nLength;
@@ -78,7 +89,9 @@ void Nextion::HandleRawData(void) {
 				HandleSave(nIndex);
 			}
 		} else {
-			break;
+			nOffset++;
+			DEBUG_PUTS("!> Invalid command <!");
+			continue;
 		}
 
 		DEBUG_PRINTF("nOffset=%d, m_nCount=%d", (int) nOffset, (int) m_nCount);
@@ -91,21 +104,29 @@ void Nextion::HandleGet(uint32_t nIndex) {
 	DEBUG1_ENTRY
 
 	switch (nIndex) {
-	case TXT_FILE_RCONFIG:
-		HandleRconfigGet();
-		break;
-	case TXT_FILE_DISPLAY_UDF:
-		HandleDisplayGet();
-		break;
 	case TXT_FILE_NETWORK:
 		HandleNetworkGet();
 		break;
+#if defined (REMOTE_CONFIG)
+	case TXT_FILE_RCONFIG:
+		HandleRconfigGet();
+		break;
+#endif
+#if defined (DISPLAY_UDF)
+	case TXT_FILE_DISPLAY_UDF:
+		HandleDisplayGet();
+		break;
+#endif
+#if defined (ARTNET_NODE)
 	case TXT_FILE_ARTNET:
 		HandleArtNetGet();
 		break;
+#endif
+#if defined (PIXEL)
 	case TXT_FILE_DEVICES:
 		HandleDevicesGet();
 		break;
+#endif
 	default:
 		break;
 	}
@@ -117,21 +138,29 @@ void Nextion::HandleSave(uint32_t nIndex) {
 	DEBUG1_ENTRY
 
 	switch (nIndex) {
-	case TXT_FILE_RCONFIG:
-		HandleRconfigSave();
-		break;
-	case TXT_FILE_DISPLAY_UDF:
-		HandleDisplaySave();
-		break;
 	case TXT_FILE_NETWORK:
 		HandleNetworkSave();
 		break;
+#if defined (REMOTE_CONFIG)
+	case TXT_FILE_RCONFIG:
+		HandleRconfigSave();
+		break;
+#endif
+#if defined (DISPLAY_UDF)
+	case TXT_FILE_DISPLAY_UDF:
+		HandleDisplaySave();
+		break;
+#endif
+#if defined (ARTNET_NODE)
 	case TXT_FILE_ARTNET:
 		HandleArtNetSave();
 		break;
+#endif
+#if defined (PIXEL)
 	case TXT_FILE_DEVICES:
 		HandleDevicesSave();
 		break;
+#endif
 	default:
 		break;
 	}

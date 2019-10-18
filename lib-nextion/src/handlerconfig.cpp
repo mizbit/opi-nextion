@@ -23,11 +23,6 @@
  * THE SOFTWARE.
  */
 
-#if !defined(__clang__)	// Needed for compiling on MacOS
- #pragma GCC push_options
- #pragma GCC optimize ("Os")
-#endif
-
 #include <stdint.h>
 
 #include "nextion.h"
@@ -35,7 +30,6 @@
 #include "remoteconfigparams.h"
 #include "remoteconfigconst.h"
 #include "storeremoteconfig.h"
-
 #include "propertiesbuilder.h"
 
 #include "debug.h"
@@ -61,27 +55,27 @@ void Nextion::HandleRconfigSave(void) {
 
 	if (GetValue("r_disable", nValue)) {
 		RemoteConfig::Get()->SetDisable(static_cast<bool>(nValue));
-		builder.Add(RemoteConfigConst::PARAMS_DISABLE, nValue, static_cast<bool>(nValue));
+		builder.Add(RemoteConfigConst::PARAMS_DISABLE, true, static_cast<bool>(nValue));
 	}
 
 	if (GetValue("r_write", nValue)) {
 		RemoteConfig::Get()->SetDisableWrite(static_cast<bool>(nValue));
-		builder.Add(RemoteConfigConst::PARAMS_DISABLE_WRITE, nValue, static_cast<bool>(nValue));
+		builder.Add(RemoteConfigConst::PARAMS_DISABLE_WRITE, true, static_cast<bool>(nValue));
 	}
 
 	if (GetValue("r_reboot", nValue)) {
 		RemoteConfig::Get()->SetEnableReboot(static_cast<bool>(nValue));
-		builder.Add(RemoteConfigConst::PARAMS_ENABLE_REBOOT, nValue, static_cast<bool>(nValue));
+		builder.Add(RemoteConfigConst::PARAMS_ENABLE_REBOOT, true, static_cast<bool>(nValue));
 	}
 
 	if (GetValue("r_uptime", nValue)) {
 		RemoteConfig::Get()->SetEnableUptime(static_cast<bool>(nValue));
-		builder.Add(RemoteConfigConst::PARAMS_ENABLE_UPTIME, nValue, static_cast<bool>(nValue));
+		builder.Add(RemoteConfigConst::PARAMS_ENABLE_UPTIME, true, static_cast<bool>(nValue));
 	}
 
-	RemoteConfigParams remoteConfigParams((RemoteConfigParamsStore *) StoreRemoteConfig::Get());
+	RemoteConfigParams remoteConfigParams(static_cast<RemoteConfigParamsStore *>(StoreRemoteConfig::Get()));
 
-	remoteConfigParams.Load((const char *) aBuffer, builder.GetSize());
+	remoteConfigParams.Load(reinterpret_cast<const char *>(aBuffer), builder.GetSize());
 
 	DEBUG2_EXIT
 }

@@ -297,7 +297,7 @@ void notmain(void) {
 		/*
 		 * Nextion
 		 */
-		nextion.Run();
+		//nextion.Run();
 		/*
 		 *
 		 */

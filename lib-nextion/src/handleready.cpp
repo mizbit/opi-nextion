@@ -1,5 +1,5 @@
 /**
- * @file sc16is750print.cpp
+ * @file handleready.cpp
  *
  */
 /* Copyright (C) 2019 by Arjan van Vught mailto:info@raspberrypi-dmx.nl
@@ -23,10 +23,12 @@
  * THE SOFTWARE.
  */
 
-#include <stdio.h>
+#include "nextion.h"
 
-#include "sc16is750.h"
+#include "debug.h"
 
-void SC16IS750::Print(void) {
+void Nextion::HandleReady(void) {
+	DEBUG_ENTRY
 
+	DEBUG_EXIT
 }

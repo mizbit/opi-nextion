@@ -1,5 +1,5 @@
 /**
- * @file nextionparams.h
+ * @file nextioninterrupt.cpp
  *
  */
 /* Copyright (C) 2019 by Arjan van Vught mailto:info@raspberrypi-dmx.nl
@@ -23,57 +23,49 @@
  * THE SOFTWARE.
  */
 
-#ifndef NEXTIONPARAMS_H_
-#define NEXTIONPARAMS_H_
-
 #include <stdint.h>
+#include <assert.h>
 
 #include "nextion.h"
 
-struct TNextionParams {
-    uint32_t nSetList;
-	uint32_t nBaud;
-	uint32_t nOnBoardCrystal;
-};
+#include "board/h3_opi_zero.h"
+#include "h3_gpio.h"
 
-enum TNextionParamsMask {
-	NEXTION_PARAMS_BAUD = (1 << 0),
-	NEXTION_PARAMS_CRYSTAL = (1 << 1)
-};
+#include "debug.h"
 
-class NextionParamsStore {
-public:
-	virtual ~NextionParamsStore(void);
+#include "nextion.h"
 
-	virtual void Update(const struct TNextionParams *pNextionParams)=0;
-	virtual void Copy(struct TNextionParams *pNextionParams)=0;
-};
+#define GPIO_INT	GPIO_EXT_26 // PA10
+#define INT_MASK	(1 << GPIO_INT)
 
-class NextionParams {
-public:
-	NextionParams(NextionParamsStore *pNextionParamsStore = 0);
-	~NextionParams(void);
+void Nextion::InitInterrupt(void) {
+	DEBUG_ENTRY
 
-	bool Load(void);
-	void Load(const char *pBuffer, uint32_t nLength);
+	h3_gpio_fsel(GPIO_INT, GPIO_FSEL_EINT);
 
-	void Builder(const struct TNextionParams *pNextionParams, uint8_t *pBuffer, uint32_t nLength, uint32_t &nSize);
-	void Save(uint8_t *pBuffer, uint32_t nLength, uint32_t &nSize);
+	uint32_t value = H3_PIO_PORTA->PUL0;
+	value &= ~(GPIO_PULL_MASK << 20);
+	value |= (GPIO_PULL_UP << 20);
+	H3_PIO_PORTA->PUL0 = value;
 
-	void Set(Nextion *pNextion);
+	value = H3_PIO_PA_INT->CFG0;
+	value &= ~(GPIO_INT_CFG_MASK << 8);
+	value |= (GPIO_INT_CFG_NEG_EDGE << 8);
+	H3_PIO_PA_INT->CFG0 = value;
 
-	void Dump(void);
+	H3_PIO_PA_INT->CTL |= INT_MASK;
+	H3_PIO_PA_INT->STA = INT_MASK;
 
-public:
-    static void staticCallbackFunction(void *p, const char *s);
+	DEBUG_EXIT
+}
 
-private:
-    void callbackFunction(const char *pLine);
-	bool isMaskSet(uint32_t nMask) const;
+bool Nextion::IsInterrupt(void) {
+	const uint32_t nValue = H3_PIO_PA_INT->STA & INT_MASK;
 
-private:
-	NextionParamsStore *m_pNextionParamsStore;
-    struct TNextionParams m_tNextionParams;
-};
+	if (__builtin_expect((nValue != 0), 0)) {
+		H3_PIO_PA_INT->STA = INT_MASK;
+		return true;
+	}
 
-#endif /* NEXTIONPARAMS_H_ */
+	return false;
+}

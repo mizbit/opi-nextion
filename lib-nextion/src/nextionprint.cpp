@@ -28,6 +28,6 @@
 #include "nextion.h"
 
 void Nextion::Print(void) {
-	SC16IS750::Print();
+	SC16IS740::Print();
 
 }

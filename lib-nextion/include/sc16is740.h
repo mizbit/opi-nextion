@@ -1,5 +1,5 @@
 /**
- * @file sc16is750.h
+ * @file sc16is740.h
  *
  */
 /* Copyright (C) 2019 by Arjan van Vught mailto:info@raspberrypi-dmx.nl
@@ -23,8 +23,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef SC16IS750_H_
-#define SC16IS750_H_
+#ifndef SC16IS740_H_
+#define SC16IS740_H_
 
 #include <stdint.h>
 
@@ -32,26 +32,31 @@
 #include "sc16is7x0.h"
 
 enum {
-	SC16IS750_I2C_ADDRESS = 0x4D
+	SC16IS740_I2C_ADDRESS = 0x4D
 };
 
 enum {
-	SC16IS750_CRISTAL_HZ = 14745600UL
+	SC16IS740_CRISTAL_HZ = 14745600UL
 };
 
-enum TSC16IS750SerialParity {
-	SC16IS750_SERIAL_PARITY_NONE,
-	SC16IS750_SERIAL_PARITY_ODD,
-	SC16IS750_SERIAL_PARITY_EVEN,
-	SC16IS750_SERIAL_PARITY_FORCED0,
-	SC16IS750_SERIAL_PARITY_FORCED1
+enum TSC16IS740SerialParity {
+	SC16IS740_SERIAL_PARITY_NONE,
+	SC16IS740_SERIAL_PARITY_ODD,
+	SC16IS740_SERIAL_PARITY_EVEN,
+	SC16IS740_SERIAL_PARITY_FORCED0,
+	SC16IS740_SERIAL_PARITY_FORCED1
 };
 
-class SC16IS750  {
+enum TSC16IS740TriggerLevel {
+	SC16IS740_TRIGGER_LEVEL_TX,
+	SC16IS740_TRIGGER_LEVEL_RX
+};
+
+class SC16IS740  {
 public:
-	SC16IS750(void);
-	SC16IS750(uint8_t nAddress, uint32_t nOnBoardCrystal = SC16IS750_CRISTAL_HZ);
-	~SC16IS750(void);
+	SC16IS740(void);
+	SC16IS740(uint8_t nAddress, uint32_t nOnBoardCrystal = SC16IS740_CRISTAL_HZ);
+	~SC16IS740(void);
 
 	void SetAddress(uint8_t nAddress) {
 		m_nAddress = nAddress;
@@ -67,25 +72,28 @@ public:
 		return m_nOnBoardCrystal;
 	}
 
-	void SetFormat(uint32_t nBits, TSC16IS750SerialParity tParity, uint32_t nStopBits);
+	void SetFormat(uint32_t nBits, TSC16IS740SerialParity tParity, uint32_t nStopBits);
 	void SetBaud(uint32_t nBaud);
+
+	bool IsInterrupt(void) {
+		const uint32_t iir = RegRead(SC16IS7X0_IIR);
+		return ((iir & 0x1) != 0x1);
+	}
 
 	bool Start(void);
 
 	void Print(void);
 
+	// Read
+
 	bool IsReadable(void) {
-		if ((RegRead(SC16IS7X0_LSR) & LSR_DR) == LSR_DR) {
-			return true;
-		} else {
-			return false;
-		}
+		return (RegRead(SC16IS7X0_RXLVL) != 0);
 	}
 
 	bool IsReadable(uint32_t nTimeOut) {
 		const uint32_t nWait = Hardware::Get()->Millis() + nTimeOut;
 		do {
-			if ((RegRead(SC16IS7X0_LSR) & LSR_DR) == LSR_DR) {
+			if (IsReadable()) {
 				return true;
 			}
 		} while (Hardware::Get()->Millis() < nWait);
@@ -109,17 +117,14 @@ public:
 		return (int) RegRead(SC16IS7X0_RHR);
 	}
 
+	// Write
+
 	bool IsWritable(void) {
-		if ((RegRead(SC16IS7X0_LSR) & LSR_THRE) == LSR_THRE) {
-			return true;
-		} else {
-			return false;
-		}
+		return (RegRead(SC16IS7X0_TXLVL) != 0);
 	}
 
-	int Putc(int nValue) {
-		while (RegRead(SC16IS7X0_TXLVL) == 0) {
-
+	int PutChar(int nValue) {
+		while (!IsWritable()) {
 		}
 
 		RegWrite(SC16IS7X0_THR, nValue);
@@ -133,20 +138,23 @@ public:
 
 		while ((c = *s++) != (char) 0) {
 			i++;
-			Putc((int) c);
+			PutChar((int) c);
 		}
 
 		return i;
 	}
 
-private:
-	void I2cSetup(void);
 	void RegWrite(uint8_t nRegister, uint8_t nValue);
 	uint8_t RegRead(uint8_t nRegister);
+
+private:
+	void I2cSetup(void);
+//	void RegWrite(uint8_t nRegister, uint8_t nValue);
+//	uint8_t RegRead(uint8_t nRegister);
 
 private:
 	uint8_t m_nAddress;
 	uint32_t m_nOnBoardCrystal;
 };
 
-#endif /* SC16IS750_H_ */
+#endif /* SC16IS740_H_ */

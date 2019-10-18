@@ -32,9 +32,12 @@
 #include "nextion.h"
 
 #include "network.h"
-#include "storenetwork.h"
 
 #include "debug.h"
+
+#ifndef MIN
+ #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
 
 void Nextion::SetIp(const char *pObjectName, uint32_t nIp) {
 	char componentText[64];
@@ -44,9 +47,13 @@ void Nextion::SetIp(const char *pObjectName, uint32_t nIp) {
 }
 
 uint32_t Nextion::GetIp(const char *pObjectName) {
-	uint8_t componentValue[32];
+	char componentValue[32];
+	uint32_t nLength = (sizeof componentValue) - 1;
 
-	if (GetText(pObjectName, componentValue, sizeof componentValue) != 0) {
+	if (GetText(pObjectName, componentValue, nLength)) {
+		componentValue[nLength] = '\0';
+		DEBUG_PRINTF("%d:%s", nLength, componentValue);
+
 		struct in_addr addr;
 		inet_aton(reinterpret_cast<char *>(componentValue), &addr);
 		return addr.s_addr;
@@ -60,8 +67,8 @@ void Nextion::HandleNetworkGet(void) {
 
 	SetIp("n_ip", Network::Get()->GetIp());
 	SetIp("n_netmask", Network::Get()->GetNetmask());
-//	SetIp("n_gw", Network::Get()->GetGatewayIp()); // there is no SetGatewayIp
-	SetText("n_hostname", reinterpret_cast<const uint8_t *>(Network::Get()->GetHostName()));
+//	SetIp("n_gw", Network::Get()->GetGatewayIp()); // There is no SetGatewayIp
+	SetText("n_hostname", Network::Get()->GetHostName());
 	SetValue("n_dhcp", static_cast<uint32_t>(Network::Get()->IsDhcpUsed()));
 
 	DEBUG2_EXIT
@@ -73,26 +80,29 @@ void Nextion::HandleNetworkSave(void) {
 	uint32_t nIp;
 
 	if ((nIp = GetIp("n_ip")) != 0) {
-		Network::Get()->SetIp(nIp);
+		//Network::Get()->SetIp(nIp);
 	}
 
 	if ((nIp = GetIp("n_netmask")) != 0) {
-		Network::Get()->SetNetmask(nIp);
+		//Network::Get()->SetNetmask(nIp);
 	}
 
-	uint8_t aHostName[NETWORK_HOSTNAME_SIZE];
+	char aHostName[NETWORK_HOSTNAME_SIZE];
+	uint32_t nLength = (sizeof aHostName) - 1;
 
-	uint32_t nLength;
+	if (GetText("n_hostname", aHostName, nLength)) {
+		aHostName[MIN(nLength, NETWORK_HOSTNAME_SIZE - 1)] = '\0';
+		DEBUG_PRINTF("%d:%s", nLength, aHostName);
 
-	if ((nLength = GetText("n_hostname", static_cast<uint8_t *>(aHostName), NETWORK_HOSTNAME_SIZE - 1)) != 0) {
-		aHostName[nLength] = '\0';
-		StoreNetwork::Get()->SaveHostName(static_cast<const uint8_t *>(aHostName));
+		Network::Get()->SetHostName(aHostName);
 	}
 
 	uint32_t nValue;
 
 	if(GetValue("n_dhcp", nValue)) {
-		StoreNetwork::Get()->SaveDhcp(static_cast<bool>(nValue));
+		if (nValue != 0) {
+			Network::Get()->EnableDhcp();
+		}
 	}
 
 	DEBUG2_EXIT

@@ -29,16 +29,38 @@
 
 #include "nextion.h"
 
+#include "display.h"
+#include "displayudfparams.h"
+#include "displayudfparamsconst.h"
+#include "storedisplayudf.h"
+#include "propertiesbuilder.h"
+
 #include "debug.h"
 
 void Nextion::HandleDisplayGet(void) {
 	DEBUG2_ENTRY
+
+	SetValue("d_timeout", static_cast<uint32_t>(Display::Get()->GetSleepTimeout()));
 
 	DEBUG2_EXIT
 }
 
 void Nextion::HandleDisplaySave(void) {
 	DEBUG2_ENTRY
+
+	uint32_t nValue;
+	uint8_t aBuffer[32];
+
+	PropertiesBuilder builder(DisplayUdfParamsConst::FILE_NAME, aBuffer, static_cast<uint32_t>(sizeof aBuffer));
+
+	if (GetValue("d_timeout", nValue)) {
+		Display::Get()->SetSleepTimeout(nValue);
+		builder.Add(DisplayUdfParamsConst::SLEEP_TIMEOUT, nValue, true);
+	}
+
+	DisplayUdfParams displayUdfParams(static_cast<DisplayUdfParamsStore *>(StoreDisplayUdf::Get()));
+
+	displayUdfParams.Load(reinterpret_cast<const char *>(aBuffer), builder.GetSize());
 
 	DEBUG2_EXIT
 }

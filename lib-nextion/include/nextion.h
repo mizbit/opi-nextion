@@ -26,12 +26,12 @@
 #ifndef NEXTION_H_
 #define NEXTION_H_
 
+#include <sc16is740.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "sc16is750.h"
 
-class Nextion: public SC16IS750 {
+class Nextion: public SC16IS740 {
 public:
 	Nextion(void);
 	~Nextion(void);
@@ -47,11 +47,16 @@ public:
 	void Print(void);
 
 private:
+	//
+	void InitInterrupt(void);
+	bool IsInterrupt(void);
+	//
 	void SendCommand(const char *pCommand);
 	bool ReceiveCommandResponse(void);
 
-	void SetText(const char *pObjectName, const uint8_t *pValue);
-	uint32_t GetText(const char *pObjectName, uint8_t *pValue, uint32_t nLength);
+	void SetText(const char *pObjectName, const char *pValue);
+	bool GetText(const char *pObjectName, char *pValue, uint32_t &nLength);
+	bool ReceiveReturnedText(char *pValue, uint32_t &nLength);
 
 	void SetValue(const char *pObjectName, uint32_t nValue);
 	bool GetValue(const char *pObjectName, uint32_t &nValue);
@@ -88,7 +93,7 @@ private:
 private:
 	uint32_t m_nBaud;
 	uint32_t m_nCount;
-	uint8_t m_aCommandReturned[32];
+	uint8_t m_aCommandReturned[64];
 };
 
 #endif /* NEXTION_H_ */

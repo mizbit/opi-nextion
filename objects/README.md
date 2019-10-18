@@ -1,11 +1,11 @@
 # Object names per page
 
+
 page "main"
 
 	title
 	version
 	uptime
-	reboot
 
 page "rconfig.txt"
 	
@@ -13,6 +13,10 @@ page "rconfig.txt"
 	r_write
 	r_reboot
 	r_uptime
+	
+page "display.txt"
+
+	d_timeout
 
 page "network.txt"
 
@@ -20,5 +24,13 @@ page "network.txt"
 	n_netmask
 	n_hostname
 	n_dhcp
+	
+page "devices.txt"
+
+	p_type
+	p_count
+	p_grp
+	p_grpcount
+	p_ports
 	
 *More to come ...* please do provide input.

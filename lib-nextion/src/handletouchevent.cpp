@@ -1,5 +1,5 @@
 /**
- * @file nextionparams.h
+ * @file handletouchevent.cpp
  *
  */
 /* Copyright (C) 2019 by Arjan van Vught mailto:info@raspberrypi-dmx.nl
@@ -23,57 +23,22 @@
  * THE SOFTWARE.
  */
 
-#ifndef NEXTIONPARAMS_H_
-#define NEXTIONPARAMS_H_
-
 #include <stdint.h>
 
 #include "nextion.h"
 
-struct TNextionParams {
-    uint32_t nSetList;
-	uint32_t nBaud;
-	uint32_t nOnBoardCrystal;
-};
+#include "debug.h"
 
-enum TNextionParamsMask {
-	NEXTION_PARAMS_BAUD = (1 << 0),
-	NEXTION_PARAMS_CRYSTAL = (1 << 1)
-};
+void Nextion::HandleTouchEvent(void) {
+	DEBUG_ENTRY
 
-class NextionParamsStore {
-public:
-	virtual ~NextionParamsStore(void);
+#ifndef NDEBUG
+	const uint32_t nPageNumber = m_aCommandReturned[1];
+	const uint32_t nComponentId = m_aCommandReturned[2];
+	const uint32_t nEvent = m_aCommandReturned[3];
 
-	virtual void Update(const struct TNextionParams *pNextionParams)=0;
-	virtual void Copy(struct TNextionParams *pNextionParams)=0;
-};
+	DEBUG_PRINTF("Page number=%d, Component Id=%d, Event=%s", nPageNumber, nComponentId, nEvent == 0x00 ? "Release" : "Press");
+#endif
 
-class NextionParams {
-public:
-	NextionParams(NextionParamsStore *pNextionParamsStore = 0);
-	~NextionParams(void);
-
-	bool Load(void);
-	void Load(const char *pBuffer, uint32_t nLength);
-
-	void Builder(const struct TNextionParams *pNextionParams, uint8_t *pBuffer, uint32_t nLength, uint32_t &nSize);
-	void Save(uint8_t *pBuffer, uint32_t nLength, uint32_t &nSize);
-
-	void Set(Nextion *pNextion);
-
-	void Dump(void);
-
-public:
-    static void staticCallbackFunction(void *p, const char *s);
-
-private:
-    void callbackFunction(const char *pLine);
-	bool isMaskSet(uint32_t nMask) const;
-
-private:
-	NextionParamsStore *m_pNextionParamsStore;
-    struct TNextionParams m_tNextionParams;
-};
-
-#endif /* NEXTIONPARAMS_H_ */
+	DEBUG_EXIT
+}

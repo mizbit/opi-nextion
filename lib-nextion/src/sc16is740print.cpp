@@ -1,5 +1,5 @@
 /**
- * @file handlemainpage.cpp
+ * @file sc16is750print.cpp
  *
  */
 /* Copyright (C) 2019 by Arjan van Vught mailto:info@raspberrypi-dmx.nl
@@ -23,32 +23,28 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
 #include <stdio.h>
 
-#include "nextion.h"
-
-#include "firmwareversion.h"
-#include "hardware.h"
+#include "sc16is740.h"
 
 #include "debug.h"
 
-void Nextion::HandleMain(void) {
-	DEBUG1_ENTRY
+void SC16IS740::Print(void) {
+	const uint8_t lcr = RegRead(SC16IS7X0_LCR);
+	RegWrite(SC16IS7X0_LCR, lcr | LCR_ENABLE_DIV);
+	const uint32_t nDivisor = RegRead(SC16IS7X0_DLL) | (RegRead(SC16IS7X0_DLH) << 8);
+	RegWrite(SC16IS7X0_LCR, lcr);
 
-	{
-		char componentText[] = "title.txt=\"Art-Net 4 Node Pixel Controller\""; //FIXME title.txt
-		SendCommand(componentText);
+	uint32_t nPrescaler;
+
+	if ((RegRead(SC16IS7X0_MCR) & 0x80) == 0) { // TODO
+		nPrescaler = 1;
+	} else {
+		nPrescaler = 4;
 	}
 
-	SetText("version", FirmwareVersion::Get()->GetPrint());
-	SetValue("uptime", static_cast<uint32_t>(Hardware::Get()->GetUpTime()));
+	const uint32_t nActualBaudrate = (m_nOnBoardCrystal / nPrescaler) / (16 * nDivisor);
 
-#ifndef NDEBUG
-	uint32_t nValue;
-	bool bSucces = GetValue("uptime", nValue);
-
-	DEBUG_PRINTF("%d:uptime=%d", bSucces, nValue);
-#endif
-	DEBUG1_EXIT
+	printf("SC16IS740\n");
+	printf(" %d\n", nActualBaudrate);
 }

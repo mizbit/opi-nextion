@@ -1,5 +1,5 @@
 /**
- * @file nextionparams.h
+ * @file nextioninterrupt.cpp
  *
  */
 /* Copyright (C) 2019 by Arjan van Vught mailto:info@raspberrypi-dmx.nl
@@ -23,57 +23,23 @@
  * THE SOFTWARE.
  */
 
-#ifndef NEXTIONPARAMS_H_
-#define NEXTIONPARAMS_H_
-
 #include <stdint.h>
+#include <assert.h>
 
 #include "nextion.h"
 
-struct TNextionParams {
-    uint32_t nSetList;
-	uint32_t nBaud;
-	uint32_t nOnBoardCrystal;
-};
+#include "bcm2835.h"
 
-enum TNextionParamsMask {
-	NEXTION_PARAMS_BAUD = (1 << 0),
-	NEXTION_PARAMS_CRYSTAL = (1 << 1)
-};
+#include "debug.h"
 
-class NextionParamsStore {
-public:
-	virtual ~NextionParamsStore(void);
+void Nextion::InitInterrupt(void) {
+	DEBUG_ENTRY
 
-	virtual void Update(const struct TNextionParams *pNextionParams)=0;
-	virtual void Copy(struct TNextionParams *pNextionParams)=0;
-};
+	bcm2835_gpio_fsel(RPI_V2_GPIO_P1_07, BCM2835_GPIO_FSEL_INPT);
 
-class NextionParams {
-public:
-	NextionParams(NextionParamsStore *pNextionParamsStore = 0);
-	~NextionParams(void);
+	DEBUG_EXIT
+}
 
-	bool Load(void);
-	void Load(const char *pBuffer, uint32_t nLength);
-
-	void Builder(const struct TNextionParams *pNextionParams, uint8_t *pBuffer, uint32_t nLength, uint32_t &nSize);
-	void Save(uint8_t *pBuffer, uint32_t nLength, uint32_t &nSize);
-
-	void Set(Nextion *pNextion);
-
-	void Dump(void);
-
-public:
-    static void staticCallbackFunction(void *p, const char *s);
-
-private:
-    void callbackFunction(const char *pLine);
-	bool isMaskSet(uint32_t nMask) const;
-
-private:
-	NextionParamsStore *m_pNextionParamsStore;
-    struct TNextionParams m_tNextionParams;
-};
-
-#endif /* NEXTIONPARAMS_H_ */
+bool Nextion::IsInterrupt(void) {
+	return bcm2835_gpio_lev(RPI_V2_GPIO_P1_07) == LOW;
+}
