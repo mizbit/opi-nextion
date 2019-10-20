@@ -39,10 +39,11 @@
  #define ALIGNED __attribute__ ((aligned (4)))
 #endif
 
-static const uint8_t s_aTermination[4] ALIGNED = { 0xFF, 0xFF, 0xFF, 0x00};
-
+static const uint8_t s_aTermination[3] ALIGNED = { 0xFF, 0xFF, 0xFF};
 static const uint32_t s_aValidBaud[] = {2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 256000, 512000, 921600};
 #define ARRAY_SIZE	((sizeof s_aValidBaud) / (sizeof s_aValidBaud[0]))
+
+#define TIME_OUT	(40)
 
 enum TReturnCodes {
 	RETURN_CODE_INVALID_VARIABLE_NAME = 0x1A,
@@ -51,7 +52,6 @@ enum TReturnCodes {
 };
 
 Nextion::Nextion(void): m_nBaud(9600) {
-	SetOnBoardCrystal(8000000UL);
 }
 
 Nextion::~Nextion(void) {
@@ -78,14 +78,12 @@ void Nextion::SetBaud(uint32_t nBaud) {
 bool Nextion::Start(void) {
 	DEBUG_ENTRY
 
-	if (!SC16IS740::Start()) {
+	if (!SC16IS740::Init()) {
 		DEBUG_EXIT
 		return false;
 	}
 
 	SC16IS740::SetBaud(m_nBaud);
-
-	InitInterrupt();
 
 	SendCommand("bkcmd=1");
 	const bool r1 = ReceiveCommandResponse();
@@ -95,37 +93,12 @@ bool Nextion::Start(void) {
 
 	SendCommand("bkcmd=2");
 
+	InitInterrupt();
+
 	DEBUG_PRINTF("%d %d", (int ) r1, (int ) r2);
 	DEBUG_EXIT
 	return r1 & r2;
 }
-
-bool Nextion::ReceiveCommandResponse(void) {
-	int c;
-	uint32_t nCount0xFF = 0;
-	uint32_t nCount = 0;
-
-	while ((c = GetChar(100)) != -1) {
-		if (c == 0xFF) {
-			nCount0xFF++;
-		} else {
-			m_aCommandReturned[nCount++] = c;
-		}
-
-		if (nCount0xFF == 3) {
-			break;
-		}
-
-		if (nCount > 1) {
-			break;
-		}
-	}
-
-	DEBUG_PRINTF("%.2x %.2x %.2x ", m_aCommandReturned[0], nCount0xFF, nCount);
-
-	return (m_aCommandReturned[0] == 0x01) && (nCount0xFF == 3) && (nCount == 1);
-}
-
 
 void Nextion::Run(void) {
 	if (IsInterrupt()) {
@@ -144,7 +117,7 @@ bool Nextion::Listen(void) {
 	uint32_t nCount0xFF = 0;
 	m_nCount = 0;
 
-	while ((c = GetChar(10)) != -1) {
+	while ((c = GetChar(TIME_OUT)) != -1) {
 		DEBUG_PRINTF("%.2x [%c]", (int) c, isprint(c) ? c : '.');
 
 		if ((m_nCount == 0) && (c == 0)) {
@@ -197,11 +170,29 @@ void Nextion::SendCommand(const char *pCommand) {
 
 	DEBUG_PUTS(pCommand);
 
-	while (GetChar() != -1)
-		;
+	FlushRead(TIME_OUT);
 
-	Puts(pCommand);
-	Puts(reinterpret_cast<const char *>(s_aTermination));
+	WriteBytes(reinterpret_cast<const uint8_t *>(pCommand), strlen(pCommand));
+	WriteBytes(reinterpret_cast<const uint8_t *>(s_aTermination), sizeof(s_aTermination));
+}
+
+bool Nextion::ReceiveCommandResponse(void) {
+	DEBUG_ENTRY
+
+	uint32_t nSize = 4;
+
+	ReadBytes(m_aCommandReturned, nSize, TIME_OUT);
+
+	if (nSize != 4) {
+		DEBUG_EXIT
+		return false;
+	}
+
+	debug_dump(m_aCommandReturned, 4);
+	DEBUG_EXIT
+
+	return ((m_aCommandReturned[0] == 0x01) && (m_aCommandReturned[1] = 0xFF)
+			&& (m_aCommandReturned[2] = 0xFF) && (m_aCommandReturned[3] = 0xFF));
 }
 
 void Nextion::SetText(const char *pObjectName, const char *pValue) {
@@ -233,12 +224,12 @@ bool Nextion::ReceiveReturnedText(char *pValue, uint32_t &nLength) {
 	uint32_t nCount = 0;
 	int nReturnedCode = -1;
 
-	if ((nReturnedCode = GetChar(100)) == -1) {
+	if ((nReturnedCode = GetChar(TIME_OUT)) == -1) {
 		DEBUG2_EXIT
 		return false;
 	}
 
-	while ((c = GetChar(100)) != -1) {
+	while ((c = GetChar(TIME_OUT)) != -1) {
 		DEBUG_PRINTF("%.2x [%c]", (int ) c, isprint(c) ? c : '.');
 
 		if (c == 0xFF) {
@@ -285,31 +276,14 @@ bool Nextion::GetValue(const char *pObjectName, uint32_t &nValue) {
 bool Nextion::ReceiveReturnedValue(uint32_t &nValue) {
 	DEBUG2_ENTRY
 
-	int c;
-	uint32_t nCount0xFF = 0;
-	uint32_t nCount = 0;
+	uint32_t nLength = 8;
+	ReadBytes(m_aCommandReturned, nLength, TIME_OUT);
 
-	while ((c = GetChar(100)) != -1) {
-		DEBUG_PRINTF("%.2x [%c]", (int) c, isprint(c) ? c : '.');
+	debug_dump(m_aCommandReturned, 8);
 
-		if (nCount > 5) {
-			DEBUG2_EXIT
-			return false;;
-		}
-
-		if (c == 0xFF) {
-			nCount0xFF++;
-		} else {
-			m_aCommandReturned[nCount++] = c;
-		}
-
-		if (nCount0xFF == 3) {
-			if (nCount != 5) {
-				DEBUG2_EXIT
-				return false;
-			}
-			break;
-		}
+	if (nLength != 8) {
+		DEBUG2_EXIT
+		return false;
 	}
 
 	if (m_aCommandReturned[0] != 0x71) {
@@ -317,7 +291,10 @@ bool Nextion::ReceiveReturnedValue(uint32_t &nValue) {
 		return false;
 	}
 
-	nValue = ((uint32_t)m_aCommandReturned[4] << 24) | ((uint32_t)m_aCommandReturned[3] << 16) | (m_aCommandReturned[2] << 8) | (m_aCommandReturned[1]);
+	nValue =  ((uint32_t) m_aCommandReturned[4] << 24)
+			| ((uint32_t) m_aCommandReturned[3] << 16)
+			| ((uint32_t) m_aCommandReturned[2] << 8)
+			| ((uint32_t) m_aCommandReturned[1]);
 
 	DEBUG_PRINTF("nValue=%d [%x]", nValue, nValue);
 

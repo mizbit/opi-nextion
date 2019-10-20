@@ -5,3 +5,5 @@
 *.map
 *.DS_Store
 ._*
+*.img
+opi_emac_artnet_nextion/orangepi_zero.img.gz

@@ -39,48 +39,51 @@ SC16IS740::SC16IS740(void) {
 	m_nOnBoardCrystal = SC16IS740_CRISTAL_HZ;
 }
 
-SC16IS740::SC16IS740(uint8_t nAddress, uint32_t nOnBoardCrystal): m_nAddress(nAddress), m_nOnBoardCrystal(nOnBoardCrystal) {
+SC16IS740::SC16IS740(uint8_t nAddress, uint32_t nOnBoardCrystal):
+	m_nAddress(nAddress),
+	m_nOnBoardCrystal(nOnBoardCrystal)
+{
 }
 
 SC16IS740::~SC16IS740(void) {
 }
 
-bool SC16IS740::Start(void) {
+bool SC16IS740::Init(void) {
 	i2c_begin();
 
 	I2cSetup();
 
 	if (!i2c_is_connected(m_nAddress)) {
-		DEBUG_PUTS("Not connected");
+		DEBUG_PRINTF("I2C: Not connected at address %.2x", m_nAddress);
 		return false;
 	}
 
 	SetFormat(8, SC16IS740_SERIAL_PARITY_NONE, 1);
 	SetBaud(SC16IS7X0_DEFAULT_BAUDRATE);
 
-	const uint8_t TEST_CHARACTER = 'A';
-	RegWrite(SC16IS7X0_SPR, TEST_CHARACTER);
+	const uint8_t nTestCharacter = 'A';
+	RegWrite(SC16IS7X0_SPR, nTestCharacter);
 
-	if ((RegRead(SC16IS7X0_SPR) != TEST_CHARACTER)) {
+	if ((RegRead(SC16IS7X0_SPR) != nTestCharacter)) {
 		return false;
 	}
 
 	//
-	uint32_t mcr = RegRead(SC16IS7X0_MCR);
-	mcr |= (1 << 2);	//TODO
-	RegWrite(SC16IS7X0_MCR, mcr);
+	uint32_t nRegisterMCR = RegRead(SC16IS7X0_MCR);
+	nRegisterMCR |= MCR_ENABLE_TCR_TLR;
+	RegWrite(SC16IS7X0_MCR, nRegisterMCR);
 
-	uint32_t efr = RegRead(SC16IS7X0_EFR);
-	RegWrite(SC16IS7X0_EFR, efr | (1 << 4)); //TODO
+	uint32_t nRegisterEFR = RegRead(SC16IS7X0_EFR);
+	RegWrite(SC16IS7X0_EFR, nRegisterEFR | EFR_ENABLE_ENHANCED_FUNCTIONS);
 
 	RegWrite(SC16IS7X0_TLR, 0x10);
 
-	RegWrite(SC16IS7X0_EFR, efr);
+	RegWrite(SC16IS7X0_EFR, nRegisterEFR);
 	//
 
 	RegWrite(SC16IS7X0_FCR, (FCR_RX_FIFO_RST | FCR_TX_FIFO_RST));
 	RegWrite(SC16IS7X0_FCR, FCR_ENABLE_FIFO);
-	RegWrite(SC16IS7X0_IER, (1 << 2) | (1 << 0)); //TODO
+	RegWrite(SC16IS7X0_IER, IER_ELSI | IER_ERHRI);
 
 	DEBUG_PRINTF("TLR=%.2x", RegRead(SC16IS7X0_TLR));
 	debug_print_bits(RegRead(SC16IS7X0_TLR));
@@ -91,78 +94,153 @@ bool SC16IS740::Start(void) {
 	DEBUG_PRINTF("IIR=%.2x", RegRead(SC16IS7X0_IIR));
 	debug_print_bits(RegRead(SC16IS7X0_IIR));
 
-	 return true;
+	return true;
 }
 
 void SC16IS740::SetFormat(uint32_t nBits, TSC16IS740SerialParity tParity,  uint32_t nStopBits) {
-	uint8_t lcr = 0x00;
+	uint8_t nRegisterLCR = 0x00;
 
 	switch (nBits) {
 	case 5:
-		lcr |= LCR_BITS5;
+		nRegisterLCR |= LCR_BITS5;
 		break;
 	case 6:
-		lcr |= LCR_BITS6;
+		nRegisterLCR |= LCR_BITS6;
 		break;
 	case 7:
-		lcr |= LCR_BITS7;
+		nRegisterLCR |= LCR_BITS7;
 		break;
 	case 8:
-		lcr |= LCR_BITS8;
+		nRegisterLCR |= LCR_BITS8;
 		break;
 	default:
-		lcr |= LCR_BITS8;
+		nRegisterLCR |= LCR_BITS8;
 	}
 
 	switch (tParity) {
 	case SERIAL_PARITY_NONE:
-		lcr |= LCR_NONE;
+		nRegisterLCR |= LCR_NONE;
 		break;
 	case SERIAL_PARITY_ODD:
-		lcr |= LCR_ODD;
+		nRegisterLCR |= LCR_ODD;
 		break;
 	case SERIAL_PARITY_EVEN:
-		lcr |= LCR_EVEN;
+		nRegisterLCR |= LCR_EVEN;
 		break;
 	case SERIAL_PARITY_FORCED1:
-		lcr |= LCR_FORCED1;
+		nRegisterLCR |= LCR_FORCED1;
 		break;
 	case SERIAL_PARITY_FORCED0:
-		lcr |= LCR_FORCED0;
+		nRegisterLCR |= LCR_FORCED0;
 		break;
 	default:
-		lcr |= LCR_NONE;
+		nRegisterLCR |= LCR_NONE;
 	}
 
 	switch (nStopBits) {
 	case 1:
-		lcr |= LCR_BITS1;
+		nRegisterLCR |= LCR_BITS1;
 		break;
 	case 2:
-		lcr |= LCR_BITS2;
+		nRegisterLCR |= LCR_BITS2;
 		break;
 	default:
-		lcr |= LCR_BITS1;
+		nRegisterLCR |= LCR_BITS1;
 	}
 
-	RegWrite(SC16IS7X0_LCR, lcr);
+	RegWrite(SC16IS7X0_LCR, nRegisterLCR);
 }
 
 void SC16IS740::SetBaud(uint32_t nBaud) {
-#define SC16IS740_PRESCALER_1               1			///< Default prescaler after reset
-#define SC16IS740_PRESCALER                 SC16IS740_PRESCALER_1
-#define SC16IS740_BAUDRATE_DIVISOR(baud)	((m_nOnBoardCrystal/SC16IS740_PRESCALER)/(baud*16UL))
+	uint32_t nPrescaler;
 
-	const uint32_t nDivisor = (uint32_t) SC16IS740_BAUDRATE_DIVISOR(nBaud);
-	const uint8_t lcr = RegRead(SC16IS7X0_LCR);
+	if ((RegRead(SC16IS7X0_MCR) & MCR_PRESCALE_4) == MCR_PRESCALE_4) {
+		nPrescaler = 4;
+	} else {
+		nPrescaler = 1;
+	}
 
-	DEBUG_PRINTF("m_nOnBoardCrystal=%d", m_nOnBoardCrystal);
+	const uint32_t nDivisor = ((m_nOnBoardCrystal / nPrescaler) / (nBaud * 16));
+	const uint8_t nRegisterLCR = RegRead(SC16IS7X0_LCR);
 
-	RegWrite(SC16IS7X0_LCR, lcr | LCR_ENABLE_DIV);
+	RegWrite(SC16IS7X0_LCR, nRegisterLCR | LCR_ENABLE_DIV);
 	RegWrite(SC16IS7X0_DLL, (nDivisor & 0xFF));
 	RegWrite(SC16IS7X0_DLH, ((nDivisor >> 8) & 0xFF));
-	RegWrite(SC16IS7X0_LCR, lcr);
+	RegWrite(SC16IS7X0_LCR, nRegisterLCR);
+
+	DEBUG_PRINTF("nPrescaler=%u", nPrescaler);
+	DEBUG_PRINTF("nDivisor=%u", nDivisor);
+	DEBUG_PRINTF("m_nOnBoardCrystal=%u", m_nOnBoardCrystal);
 }
+
+void SC16IS740::WriteBytes(const uint8_t *pBytes, uint32_t nSize) {
+	uint8_t *p = const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(pBytes));
+
+	while (nSize > 0) {
+		uint32_t nAvailable = RegRead(SC16IS7X0_TXLVL);
+
+		// DEBUG_PRINTF("nAvailable=%d", nAvailable);
+
+		while ((nSize > 0) && (nAvailable > 0)) {
+			RegWrite(SC16IS7X0_THR, *p);
+			nSize--;
+			nAvailable--;
+			p++;
+		}
+	}
+}
+
+void SC16IS740::ReadBytes(uint8_t *pBytes, uint32_t &nSize, uint32_t nTimeOut) {
+	uint8_t *Destination = pBytes;
+	uint32_t nRemaining = nSize;
+
+	while (nRemaining > 0) {
+		const uint32_t nMillis = Hardware::Get()->Millis();
+		uint32_t nAvailable;
+
+		while ((nAvailable = RegRead(SC16IS7X0_RXLVL)) == 0) {
+			if ((Hardware::Get()->Millis() - nTimeOut) > nMillis) {
+				nRemaining = 0;
+				break;
+			}
+		}
+
+		// DEBUG_PRINTF("nAvailable=%d", nAvailable);
+
+		while ((nRemaining > 0) && (nAvailable > 0)) {
+			*Destination++ = RegRead(SC16IS7X0_RHR);
+			nRemaining--;
+			nAvailable--;
+		}
+	}
+
+	nSize = (Destination - pBytes);
+}
+
+void SC16IS740::FlushRead(uint32_t nTimeOut) {
+	bool bIsRemaining = true;
+
+	while (bIsRemaining) {
+		const uint32_t nMillis = Hardware::Get()->Millis();
+		uint32_t nAvailable;
+
+		while ((nAvailable = RegRead(SC16IS7X0_RXLVL)) == 0) {
+			if ((Hardware::Get()->Millis() - nTimeOut) > nMillis) {
+				bIsRemaining = false;
+				break;
+			}
+		}
+
+		// DEBUG_PRINTF("nAvailable=%d", nAvailable);
+
+		while (nAvailable > 0) {
+			RegRead(SC16IS7X0_RHR);
+			nAvailable--;
+		}
+	}
+}
+
+// Private
 
 void SC16IS740::RegWrite(uint8_t nRegister, uint8_t nValue) {
 	I2cSetup();

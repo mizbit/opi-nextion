@@ -30,4 +30,6 @@
 void Nextion::Print(void) {
 	SC16IS740::Print();
 
+	printf("Nextion\n");
+	printf(" %d Baud\n", m_nBaud);
 }

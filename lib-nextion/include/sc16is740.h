@@ -27,6 +27,7 @@
 #define SC16IS740_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "hardware.h"
 #include "sc16is7x0.h"
@@ -72,41 +73,27 @@ public:
 		return m_nOnBoardCrystal;
 	}
 
+	bool Init(void);
+
 	void SetFormat(uint32_t nBits, TSC16IS740SerialParity tParity, uint32_t nStopBits);
 	void SetBaud(uint32_t nBaud);
 
 	bool IsInterrupt(void) {
-		const uint32_t iir = RegRead(SC16IS7X0_IIR);
-		return ((iir & 0x1) != 0x1);
-	}
+		const uint32_t nRegisterIIR = RegRead(SC16IS7X0_IIR);
 
-	bool Start(void);
+		return ((nRegisterIIR & 0x1) != 0x1);
+	}
 
 	void Print(void);
 
 	// Read
-
-	bool IsReadable(void) {
-		return (RegRead(SC16IS7X0_RXLVL) != 0);
-	}
-
-	bool IsReadable(uint32_t nTimeOut) {
-		const uint32_t nWait = Hardware::Get()->Millis() + nTimeOut;
-		do {
-			if (IsReadable()) {
-				return true;
-			}
-		} while (Hardware::Get()->Millis() < nWait);
-
-		return false;
-	}
 
 	int GetChar(void) {
 		if (!IsReadable()) {
 			return -1;
 		}
 
-		return (int) RegRead(SC16IS7X0_RHR);
+		return RegRead(SC16IS7X0_RHR);
 	}
 
 	int GetChar(uint32_t nTimeOut) {
@@ -114,15 +101,10 @@ public:
 			return -1;
 		}
 
-		return (int) RegRead(SC16IS7X0_RHR);
+		return RegRead(SC16IS7X0_RHR);
 	}
 
 	// Write
-
-	bool IsWritable(void) {
-		return (RegRead(SC16IS7X0_TXLVL) != 0);
-	}
-
 	int PutChar(int nValue) {
 		while (!IsWritable()) {
 		}
@@ -132,25 +114,35 @@ public:
 		return nValue;
 	}
 
-	int Puts(const char *s) {
-		int i = 0;
-		char c;
+	// Multiple read/write
 
-		while ((c = *s++) != (char) 0) {
-			i++;
-			PutChar((int) c);
-		}
-
-		return i;
-	}
-
-	void RegWrite(uint8_t nRegister, uint8_t nValue);
-	uint8_t RegRead(uint8_t nRegister);
+	void WriteBytes(const uint8_t *pBytes, uint32_t nSize);
+	void ReadBytes(uint8_t *pBytes, uint32_t &nSize, uint32_t nTimeOut);
+	void FlushRead(uint32_t nTimeOut);
 
 private:
+	bool IsWritable(void) {
+		return (RegRead(SC16IS7X0_TXLVL) != 0);
+	}
+
+	bool IsReadable(void) {
+		return (RegRead(SC16IS7X0_RXLVL) != 0);
+	}
+
+	bool IsReadable(uint32_t nTimeOut) {
+		const uint32_t nMillis = Hardware::Get()->Millis();
+		do {
+			if (IsReadable()) {
+				return true;
+			}
+		} while ((Hardware::Get()->Millis() - nTimeOut) < nMillis);
+
+		return false;
+	}
+
 	void I2cSetup(void);
-//	void RegWrite(uint8_t nRegister, uint8_t nValue);
-//	uint8_t RegRead(uint8_t nRegister);
+	void RegWrite(uint8_t nRegister, uint8_t nValue);
+	uint8_t RegRead(uint8_t nRegister);
 
 private:
 	uint8_t m_nAddress;

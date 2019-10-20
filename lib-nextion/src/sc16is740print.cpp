@@ -30,21 +30,22 @@
 #include "debug.h"
 
 void SC16IS740::Print(void) {
-	const uint8_t lcr = RegRead(SC16IS7X0_LCR);
-	RegWrite(SC16IS7X0_LCR, lcr | LCR_ENABLE_DIV);
+	const uint8_t nRegisterLCR = RegRead(SC16IS7X0_LCR);
+	RegWrite(SC16IS7X0_LCR, nRegisterLCR | LCR_ENABLE_DIV);
 	const uint32_t nDivisor = RegRead(SC16IS7X0_DLL) | (RegRead(SC16IS7X0_DLH) << 8);
-	RegWrite(SC16IS7X0_LCR, lcr);
+	RegWrite(SC16IS7X0_LCR, nRegisterLCR); // Restore LCR
 
 	uint32_t nPrescaler;
 
-	if ((RegRead(SC16IS7X0_MCR) & 0x80) == 0) { // TODO
-		nPrescaler = 1;
-	} else {
+	if ((RegRead(SC16IS7X0_MCR) & MCR_PRESCALE_4) == MCR_PRESCALE_4) {
 		nPrescaler = 4;
+	} else {
+		nPrescaler = 1;
 	}
 
 	const uint32_t nActualBaudrate = (m_nOnBoardCrystal / nPrescaler) / (16 * nDivisor);
 
 	printf("SC16IS740\n");
-	printf(" %d\n", nActualBaudrate);
+	printf(" %u Hz\n", m_nOnBoardCrystal);
+	printf(" %d Baud\n", nActualBaudrate);
 }
